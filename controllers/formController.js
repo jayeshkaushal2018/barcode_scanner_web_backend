@@ -1,6 +1,8 @@
 const { validationResult } = require('express-validator');
+const db = require('../config/db');
+const dbErrorHandler = require('../utils/dbErrorHandler');
 
-const submitForm = (req, res) => {
+const submitForm = async (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
@@ -8,11 +10,17 @@ const submitForm = (req, res) => {
 
   const { scannedResult, employmentId, quantity } = req.body;
 
-  // Perform any necessary processing here
-  console.log('Received data:', { scannedResult, employmentId, quantity });
+  try {
+    const [rows] = await db.query('INSERT INTO inventory (scannedResult, employmentId, quantity) VALUES (?, ?, ?)', [scannedResult, employmentId, quantity]);
 
-  // Simulate successful response (you can add your own logic to store the data)
-  res.status(200).json({ message: 'Data received successfully' });
+    console.log('Received data:', { scannedResult, employmentId, quantity });
+    console.log('Insert ID:', rows.insertId);
+
+    res.status(200).json({ message: 'Data received successfully', insertId: rows.insertId });
+  } catch (error) {
+    const { message, statusCode } = dbErrorHandler(error);
+    next({ message, statusCode });
+  }
 };
 
 module.exports = {
