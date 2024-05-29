@@ -2,7 +2,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const helmet = require('helmet');
-const logger = require('./middleware/logging');
+const { logRequest, logger } = require('./middleware/logger');
 const rateLimiter = require('./middleware/rateLimit');
 const config = require('./config/config');
 const submitRoute = require('./routes/submitRoute');
@@ -15,27 +15,27 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 app.use(helmet());
-app.use(logger); // Use logging middleware
+app.use(logRequest); // Use request logging middleware
 app.use(rateLimiter); // Apply rate limiting
 
 // Test database connection
 db.getConnection()
   .then(connection => {
-    console.log('Database connected');
+    logger.info('Database connected');
     connection.release();
   })
   .catch(err => {
-    console.error('Database connection failed:', err.stack);
+    logger.error('Database connection failed:', err.stack);
     process.exit(1);
   });
 
 // Routes
-app.use('/api', submitRoute);
+app.use('/api', submitRoute(db));
 
 // Error handling middleware
 app.use(errorHandler);
 
 // Start the server
 app.listen(config.port, () => {
-  console.log(`Server is running on port ${config.port}`);
+  logger.info(`Server is running on port ${config.port}`);
 });
