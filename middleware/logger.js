@@ -1,31 +1,19 @@
-const { createLogger, format, transports } = require('winston');
-const { combine, timestamp, printf, colorize } = format;
+const morgan = require('morgan');
+const fs = require('fs');
+const path = require('path');
 
-const logger = createLogger({
-  level: 'info',
-  format: combine(
-    timestamp(),
-    printf(({ level, message, timestamp }) => {
-      return `${timestamp} [${level}]: ${message}`;
-    })
-  ),
-  transports: [
-    new transports.Console({
-      format: combine(colorize(), timestamp(), printf(({ level, message, timestamp }) => {
-        return `${timestamp} [${level}]: ${message}`;
-      }))
-    }),
-    new transports.File({ filename: 'logs/error.log', level: 'error' }),
-    new transports.File({ filename: 'logs/combined.log' }),
-  ],
-});
+// Create a write stream (in append mode)
+const accessLogStream = fs.createWriteStream(path.join(__dirname, '../logs/access.log'), { flags: 'a' });
 
-const logRequest = (req, res, next) => {
-  logger.info(`${req.method} ${req.url}`);
-  next();
+// Setup the logger
+const logger = morgan('combined', { stream: accessLogStream });
+
+// Enhanced error logging
+const errorLogger = (err, req, res, next) => {
+  fs.appendFile(path.join(__dirname, '../logs/error.log'), `${new Date().toISOString()} - ${err.stack}\n`, (err) => {
+    if (err) console.error('Error logging failed:', err);
+  });
+  next(err);
 };
 
-module.exports = {
-  logger,
-  logRequest,
-};
+module.exports = { logger, errorLogger };

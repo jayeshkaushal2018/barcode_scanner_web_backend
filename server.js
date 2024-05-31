@@ -2,7 +2,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const helmet = require('helmet');
-const logger = require('./middleware/logging');
+const { logger, errorLogger } = require('./middleware/logging');
 const rateLimiter = require('./middleware/rateLimit');
 const config = require('./config/config');
 const connectDB = require('./config/db');
@@ -24,7 +24,8 @@ app.use(rateLimiter); // Apply rate limiting
 // Routes
 app.use('/api', submitRoute);
 
-// Error handling middleware
+// Error logging and handling middleware
+app.use(errorLogger);
 app.use(errorHandler);
 
 // Start the server
